@@ -1,8 +1,10 @@
 // ARSLAN — Módulo externo "Poner precios"
-// Lee ?data=... (LZString) y permite marcar productos y asignarles precio nuevo
+// Lee ?data=... (LZString) y permite poner precio nuevo a productos.
+// PDF/TXT solo incluyen los productos donde se ha puesto precio nuevo.
+// No hace falta seleccionar nada.
 
 let PAYLOAD = null;
-let ROWS = [];        // {id, group, groupLabel, name, old, value, checked}
+let ROWS = [];      // {id, group, groupLabel, name, old, value}
 let CURRENT_GROUP = 'ALL';
 
 // Shortcuts de DOM
@@ -18,7 +20,7 @@ function escapeHTML(str){
     .replace(/'/g,'&#039;');
 }
 
-/* ========= CARGA PAYLOAD ========= */
+/* ========= LECTURA DEL PAYLOAD DESDE LA URL ========= */
 function parsePayloadFromURL(){
   const qs = new URLSearchParams(location.search);
   const data = qs.get('data');
@@ -33,6 +35,7 @@ function parsePayloadFromURL(){
   }
 }
 
+/* ========= CONSTRUIR FILAS INTERNAS ========= */
 function buildRowsFromPayload(){
   if(!PAYLOAD || !Array.isArray(PAYLOAD.groups)) return;
   ROWS = [];
@@ -46,20 +49,19 @@ function buildRowsFromPayload(){
         groupLabel: glabel,
         name: it.name || '',
         old: it.oldPrice || '',
-        value: '',       // nuevo precio introducido aquí
-        checked: false
+        value: ''   // nuevo precio aquí
       });
     });
   });
 }
 
-/* ========= FILTRADO ========= */
+/* ========= FILTRADO POR GRUPO ========= */
 function filteredRows(){
   if(CURRENT_GROUP === 'ALL') return ROWS;
   return ROWS.filter(r => r.group === CURRENT_GROUP);
 }
 
-/* ========= RENDER SELECTOR GRUPO ========= */
+/* ========= SELECTOR DE GRUPO ========= */
 function buildGroupSelector(){
   const sel = $('selGroup');
   if(!sel) return;
@@ -90,7 +92,7 @@ function renderTable(){
 
   const rows = filteredRows();
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="4"><span class="hint">No hay productos en este grupo.</span></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3"><span class="hint">No hay productos en este grupo.</span></td></tr>`;
     if(infoCount) infoCount.textContent = '0 productos.';
     if(totPreview) totPreview.textContent = '';
     if(statsPreview) statsPreview.textContent = '';
@@ -99,18 +101,12 @@ function renderTable(){
 
   let html = '';
   let countNew = 0;
-  let sumPrices = 0;
 
   rows.forEach(r => {
     const hasNew = r.value !== '' && !isNaN(parseFloat(r.value.replace(',','.')));
-    if(hasNew){
-      countNew++;
-      sumPrices += parseFloat(r.value.replace(',','.'));
-    }
+    if(hasNew) countNew++;
+
     html += `<tr data-id="${escapeHTML(r.id)}">
-      <td>
-        <input type="checkbox" class="chk-row" ${r.checked ? 'checked' : ''}>
-      </td>
       <td class="name">
         ${escapeHTML(r.name)}
         <div class="hint">${escapeHTML(r.groupLabel || '')}</div>
@@ -131,66 +127,66 @@ function renderTable(){
 
   if(infoCount) infoCount.textContent = `${rows.length} productos en este grupo.`;
   if(totPreview){
-    totPreview.textContent = countNew > 0
-      ? `Líneas con precio nuevo: ${countNew} — Suma de nuevos precios (solo vista rápida): ${sumPrices.toFixed(2)}€`
-      : 'Sin precios nuevos todavía.';
+    totPreview.textContent = countNew
+      ? `Líneas con precio nuevo en este grupo: ${countNew}.`
+      : 'Sin precios nuevos en este grupo.';
   }
   if(statsPreview){
-    const totalSelected = selectedRowsWithNewPrice().length;
-    statsPreview.textContent = totalSelected
-      ? `Seleccionadas para exportar: ${totalSelected} líneas.`
-      : 'Ninguna línea seleccionada con precio nuevo.';
+    const totalRowsNew = rowsWithNewPrice().length;
+    statsPreview.textContent = totalRowsNew
+      ? `Total de productos con precio nuevo (todos los grupos): ${totalRowsNew}.`
+      : 'Ningún producto con precio nuevo todavía.';
   }
+
+  setupTableEvents();
 }
 
-/* ========= MANEJO DE EVENTOS EN LA TABLA ========= */
+/* ========= EVENTOS EN TABLA (inputs) ========= */
 function setupTableEvents(){
   const tbody = $('tbody');
   if(!tbody) return;
 
-  // Checkbox seleccionar fila
-  tbody.addEventListener('change', (e)=>{
-    if(!e.target.matches('.chk-row')) return;
-    const tr = e.target.closest('tr');
-    if(!tr) return;
-    const id = tr.dataset.id;
-    const row = ROWS.find(x => x.id === id);
-    if(!row) return;
-    row.checked = e.target.checked;
-    renderTable(); // para actualizar stats
-  });
+  // Para evitar duplicar listeners en cada render, primero quitamos eventos
+  // usando delegación (solo un addEventListener global)
 
-  // Input precio: blur y enter
-  tbody.addEventListener('blur', (e)=>{
-    if(!e.target.matches('.price-input')) return;
-    const tr = e.target.closest('tr');
-    if(!tr) return;
-    const id = tr.dataset.id;
-    const row = ROWS.find(x => x.id === id);
-    if(!row) return;
-    handlePriceBlur(e.target, row);
-  }, true);
+  tbody.onblur = null;
+  tbody.onkeydown = null;
 
-  tbody.addEventListener('keydown', (e)=>{
-    if(!e.target.matches('.price-input')) return;
-    if(e.key === 'Enter'){
-      e.preventDefault();
-      // guardar valor actual antes de moverse
-      const tr = e.target.closest('tr');
-      if(tr){
-        const id = tr.dataset.id;
-        const row = ROWS.find(x => x.id === id);
-        if(row) handlePriceBlur(e.target, row, /*noRerender*/true);
-      }
-      // saltar al siguiente input visible
-      const all = Array.from(tbody.querySelectorAll('.price-input'));
-      const idx = all.indexOf(e.target);
-      if(idx > -1 && all[idx+1]){
-        all[idx+1].focus();
-        all[idx+1].select();
-      }
+  tbody.addEventListener('blur', handleBlur, true);
+  tbody.addEventListener('keydown', handleKeyDown);
+}
+
+function handleBlur(e){
+  if(!e.target.matches('.price-input')) return;
+  const tr = e.target.closest('tr');
+  if(!tr) return;
+  const id = tr.dataset.id;
+  const row = ROWS.find(x => x.id === id);
+  if(!row) return;
+  handlePriceBlur(e.target, row);
+}
+
+function handleKeyDown(e){
+  if(!e.target.matches('.price-input')) return;
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    const tbody = $('tbody');
+    const inputs = Array.from(tbody.querySelectorAll('.price-input'));
+    const idx = inputs.indexOf(e.target);
+
+    // Guardar valor actual
+    const tr = e.target.closest('tr');
+    if(tr){
+      const id = tr.dataset.id;
+      const row = ROWS.find(x => x.id === id);
+      if(row) handlePriceBlur(e.target, row, true);
     }
-  });
+
+    if(idx > -1 && inputs[idx+1]){
+      inputs[idx+1].focus();
+      inputs[idx+1].select();
+    }
+  }
 }
 
 function handlePriceBlur(input, row, noRerender){
@@ -202,7 +198,7 @@ function handlePriceBlur(input, row, noRerender){
   }
   const n = parseFloat(raw.replace(',','.'));
   if(isNaN(n)){
-    // valor inválido → revertir
+    // Revertir
     input.value = row.value || '';
     return;
   }
@@ -212,20 +208,12 @@ function handlePriceBlur(input, row, noRerender){
   if(!noRerender) renderTable();
 }
 
-/* ========= SELECCIONAR TODO / NADA ========= */
-function selectAllInCurrent(flag){
-  filteredRows().forEach(r => { r.checked = !!flag; });
-  renderTable();
-}
-
-/* ========= LÓGICA DE EXPORTACIÓN ========= */
-function selectedRowsWithNewPrice(){
+/* ========= FILAS CON PRECIO NUEVO ========= */
+function rowsWithNewPrice(){
   return ROWS.filter(r=>{
-    if(!r.checked) return false;
     if(!r.value) return false;
     const newN = parseFloat(r.value.replace(',','.'));
     if(isNaN(newN)) return false;
-    // Si hay precio antiguo, ignorar si es exactamente igual
     if(r.old){
       const oldN = parseFloat(String(r.old).replace(',','.'));
       if(!isNaN(oldN) && Math.abs(oldN - newN) < 0.0001) return false;
@@ -236,9 +224,9 @@ function selectedRowsWithNewPrice(){
 
 /* ========= EXPORT TXT ========= */
 function exportTXT(){
-  const rows = selectedRowsWithNewPrice();
+  const rows = rowsWithNewPrice();
   if(!rows.length){
-    alert('No hay líneas seleccionadas con precio nuevo.');
+    alert('No hay productos con precio nuevo.');
     return;
   }
   const lines = rows.map(r => `${r.name}\t${r.value}€`);
@@ -250,11 +238,11 @@ function exportTXT(){
   a.click();
 }
 
-/* ========= EXPORT PDF (solo nombre + precio nuevo) ========= */
+/* ========= EXPORT PDF (solo nombre + NUEVO PRECIO) ========= */
 function generatePDF(){
-  const rows = selectedRowsWithNewPrice();
+  const rows = rowsWithNewPrice();
   if(!rows.length){
-    alert('No hay líneas seleccionadas con precio nuevo.');
+    alert('No hay productos con precio nuevo.');
     return;
   }
   const dt = new Date();
@@ -323,7 +311,7 @@ function init(){
   PAYLOAD = parsePayloadFromURL();
   if(!PAYLOAD || !Array.isArray(PAYLOAD.groups) || !PAYLOAD.groups.length){
     if(meta) meta.textContent = 'Sin datos recibidos. Abre este link desde ARSLAN LISTAS (botón “💶 Link Precios”).';
-    $('infoCount').textContent = '0 productos.';
+    const info = $('infoCount'); if(info) info.textContent='0 productos.';
     return;
   }
 
@@ -333,17 +321,10 @@ function init(){
 
   buildRowsFromPayload();
   buildGroupSelector();
-  setupTableEvents();
   renderTable();
 
-  // Botones globales
-  const btnAll = $('btnAll');
-  const btnNone = $('btnNone');
   const btnTXT = $('btnTXT');
   const btnPDF = $('btnPDF');
-
-  if(btnAll) btnAll.onclick = () => selectAllInCurrent(true);
-  if(btnNone) btnNone.onclick = () => selectAllInCurrent(false);
   if(btnTXT) btnTXT.onclick = exportTXT;
   if(btnPDF) btnPDF.onclick = generatePDF;
 }
