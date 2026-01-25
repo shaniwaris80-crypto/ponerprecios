@@ -8,7 +8,7 @@
   <!-- Fuente Poppins -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
 
-  <!-- LZ-String para descomprimir ?data=... (igual que reparto) -->
+  <!-- LZ-String para descomprimir ?data=... -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 
   <style>
@@ -72,7 +72,7 @@
       color:#b91c1c;
       background:#fef2f2;
     }
-    input[type="text"],input[type="number"]{
+    input[type="text"]{
       border-radius:10px;
       border:1px solid var(--border);
       padding:8px 10px;
@@ -148,6 +148,8 @@
       .card{border:none;box-shadow:none;padding:0;margin-bottom:6px}
       button{display:none}
       input{border:none}
+      /* ⚠️ Solo imprimir filas con precio NUEVO (changed-print) */
+      tbody tr:not(.changed-print){display:none;}
     }
     tr.highlight td{
       background:#ecfdf5;
@@ -233,6 +235,21 @@
         .replace(/'/g,'&#039;');
     }
 
+    // Normalizar precios para compararlos numéricamente
+    function normalizePriceString(s){
+      return String(s||'').replace(',', '.').trim();
+    }
+    function priceNumberOrNaN(s){
+      const n = parseFloat(normalizePriceString(s));
+      return isNaN(n) ? NaN : n;
+    }
+    function areSamePrice(a,b){
+      const na = priceNumberOrNaN(a);
+      const nb = priceNumberOrNaN(b);
+      if(isNaN(na) || isNaN(nb)) return false;
+      return Math.abs(na - nb) < 0.0001;
+    }
+
     // ========= Carga de payload desde ?data=... =========
     function loadPayloadFromQuery(){
       const enc = getParam('data');
@@ -272,7 +289,7 @@
         name: p.name || "",
         qty: p.qty ?? "",
         oldPrice: p.oldPrice || "",
-        newPrice: "",      // aquí escribirá el usuario
+        newPrice: "",      // aquí escribe el usuario
         selected: false
       }));
     }
@@ -327,9 +344,13 @@
       filtered.forEach(r=>{
         const isUnassigned = (r.provider === "SIN PROVEEDOR");
         const tagClass = isUnassigned ? 'tag unassigned' : 'tag prov';
-        const oldText = r.oldPrice ? (Number(r.oldPrice).toFixed(2) + '€') : '';
+        const oldText = r.oldPrice ? (priceNumberOrNaN(r.oldPrice).toFixed(2) + '€') : '';
         const placeholder = r.oldPrice ? 'mantener' : 'nuevo precio';
-        const trClass = r.selected || r.newPrice ? 'highlight' : '';
+
+        const hasNew = !!r.newPrice.trim();
+        const changed = hasNew && !areSamePrice(r.oldPrice, r.newPrice);
+        const highlight = r.selected || changed;
+        const trClass = (highlight ? 'highlight ' : '') + (changed ? 'changed-print' : '');
         const checked = r.selected ? 'checked' : '';
 
         html += `<tr class="${trClass}" data-id="${r.id}">
@@ -341,16 +362,17 @@
           <td class="num">${escapeHTML(r.qty)}</td>
           <td class="num">${escapeHTML(oldText)}</td>
           <td>
-            <input type="number"
-                   class="price-input"
-                   data-role="price"
-                   data-id="${r.id}"
-                   inputmode="decimal"
-                   step="0.01"
-                   min="0"
-                   autocomplete="off"
-                   placeholder="${escapeHTML(placeholder)}"
-                   value="${escapeHTML(r.newPrice)}"/>
+            <input
+              type="text"
+              class="price-input"
+              data-role="price"
+              data-id="${r.id}"
+              inputmode="decimal"
+              pattern="[0-9]*[\\.,]?[0-9]*"
+              autocomplete="off"
+              placeholder="${escapeHTML(placeholder)}"
+              value="${escapeHTML(r.newPrice)}"
+            />
           </td>
         </tr>`;
       });
@@ -361,7 +383,11 @@
       // Totales
       const totalListed = filtered.length;
       const totalSelected = filtered.filter(r=>r.selected).length;
-      const totalWithNewPrice = filtered.filter(r=>!!r.newPrice.trim()).length;
+      const totalWithNewPrice = filtered.filter(r=>{
+        const hasNew = !!r.newPrice.trim();
+        const changed = hasNew && !areSamePrice(r.oldPrice, r.newPrice);
+        return changed;
+      }).length;
       totalsEl.textContent =
         `Mostrando ${totalListed} productos · `+
         `${totalSelected} marcados · `+
@@ -392,7 +418,7 @@
       // Si escribe algo en precio nuevo, marcamos automáticamente seleccionado
       row.selected = !!row.newPrice;
       renderTable();
-      // Reenfocamos el input actual para que no pierda foco por el re-render
+      // Reenfocamos el input actual tras el re-render
       const again = tableContainer.querySelector('input[data-role="price"][data-id="'+id+'"]');
       if(again){
         const len = again.value.length;
@@ -425,10 +451,10 @@
     // ========= Exportar TXT precios nuevos =========
     document.getElementById('btnExportTxt').addEventListener('click', ()=>{
       const changed = rows.filter(r=>{
-        if(!r.selected) return false;
         const v = r.newPrice.trim();
+        if(!r.selected) return false;
         if(!v) return false;
-        if(r.oldPrice && v === String(r.oldPrice)) return false;
+        if(areSamePrice(r.oldPrice, v)) return false;
         return true;
       });
 
@@ -439,7 +465,8 @@
 
       const lines = changed.map(r=>{
         const prov = r.provider === 'SIN PROVEEDOR' ? 'SIN PROVEEDOR' : r.provider;
-        return `${prov}\t${r.name}\t${r.qty}\t${r.oldPrice || ''}\t${r.newPrice}`;
+        const oldTxt = r.oldPrice ? priceNumberOrNaN(r.oldPrice).toFixed(2) : '';
+        return `${prov}\t${r.name}\t${r.qty}\t${oldTxt}\t${r.newPrice}`;
       });
 
       const today = (payload.dateISO || new Date().toISOString().split('T')[0]);
@@ -453,10 +480,10 @@
     // ========= Copiar JSON precios nuevos =========
     document.getElementById('btnCopyJson').addEventListener('click', async ()=>{
       const changed = rows.filter(r=>{
-        if(!r.selected) return false;
         const v = r.newPrice.trim();
+        if(!r.selected) return false;
         if(!v) return false;
-        if(r.oldPrice && v === String(r.oldPrice)) return false;
+        if(areSamePrice(r.oldPrice, v)) return false;
         return true;
       }).map(r=>({
         provider: r.provider,
