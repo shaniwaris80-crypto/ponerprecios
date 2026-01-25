@@ -250,7 +250,7 @@ function exportTXT(){
   a.click();
 }
 
-/* ========= EXPORT PDF ========= */
+/* ========= EXPORT PDF (solo nombre + precio nuevo) ========= */
 function generatePDF(){
   const rows = selectedRowsWithNewPrice();
   if(!rows.length){
@@ -264,16 +264,7 @@ function generatePDF(){
   const rowsHTML = rows.map(r => `
     <tr>
       <td>${escapeHTML(r.name)}</td>
-      <td style="text-align:right">${r.old ? escapeHTML(r.old) : ''}</td>
       <td style="text-align:right">${escapeHTML(r.value)}</td>
-      <td style="text-align:right">${
-        (!r.old || isNaN(parseFloat(String(r.old).replace(',','.'))))
-          ? ''
-          : ((
-              parseFloat(r.value.replace(',','.')) -
-              parseFloat(String(r.old).replace(',','.'))
-            ).toFixed(2))
-      }</td>
     </tr>
   `).join('');
 
@@ -313,9 +304,7 @@ function generatePDF(){
     <thead>
       <tr>
         <th>Producto</th>
-        <th style="text-align:right">Precio antiguo</th>
         <th style="text-align:right">Nuevo precio</th>
-        <th style="text-align:right">Diferencia</th>
       </tr>
     </thead>
     <tbody>
