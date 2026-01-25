@@ -1,372 +1,327 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN PRECIOS v1 — KIWI</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
-<style>
-  :root{
-    --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
-    --bg:#ffffff; --shadow:0 2px 8px rgba(0,0,0,.06);
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;font-family:'Poppins',sans-serif;background:var(--bg);color:var(--ink);
-  }
-  .topbar{
-    position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border);
-    padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;
-  }
-  h1{margin:0;font-size:18px}
-  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap}
-  .container{padding:10px 12px 80px}
-  .card{border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:var(--shadow);margin-bottom:10px}
-  .card .hd{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-  .card .bd{padding:10px 12px}
-  .toolbar{display:flex;flex-wrap:wrap;gap:8px}
-  .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi),var(--kiwi-2));color:#fff;font-size:13px;cursor:pointer}
-  .btn.muted{background:#fff;color:var(--ink);border-color:var(--border)}
-  .btn.small{padding:6px 10px;font-size:12px}
-  .hint{font-size:12px;color:var(--muted)}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{border-bottom:1px solid var(--border);padding:6px;vertical-align:middle;text-align:left}
-  th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .chip-prov{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);font-size:11px;color:var(--muted);margin-right:4px}
-  .input-filter{width:100%;padding:8px 10px;border-radius:12px;border:1px solid var(--border);font-size:13px}
-  select{padding:8px 10px;border-radius:12px;border:1px solid var(--border);font-size:13px;width:100%}
-  .row{display:flex;gap:8px;flex-wrap:wrap}
-  .row > *{flex:1}
-  .price-input{
-    width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--border);font-size:14px;
-  }
-  .price-input:focus{outline:none;border-color:var(--kiwi)}
-  .badge{font-size:11px;border-radius:999px;padding:2px 6px;border:1px solid var(--border);background:var(--panel);color:var(--muted)}
-  .badge.ok{border-color:#bbf7d0;background:#ecfdf5;color:#166534}
-</style>
+  <meta charset="utf-8">
+  <title>ARSLAN — Poner precios</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  <style>
+    :root{
+      --ink:#111827; --muted:#6b7280; --border:#e5e7eb; --bg:#f9fafb; --panel:#ffffff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:'Poppins',system-ui,Arial;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    .app{
+      max-width:900px;
+      margin:0 auto;
+      padding:12px;
+    }
+    h1{font-size:18px;margin:0 0 4px}
+    .meta{font-size:12px;color:var(--muted);margin-bottom:10px}
+    .card{
+      background:var(--panel);
+      border-radius:14px;
+      border:1px solid var(--border);
+      box-shadow:0 2px 8px rgba(0,0,0,.04);
+      padding:10px 12px;
+      margin-bottom:12px;
+    }
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .row > *{flex:1}
+    select,button{
+      font-family:inherit;
+      font-size:14px;
+    }
+    select{
+      width:100%;
+      border-radius:10px;
+      border:1px solid var(--border);
+      padding:8px 10px;
+      background:#fff;
+    }
+    button{
+      border-radius:10px;
+      border:1px solid var(--border);
+      padding:8px 12px;
+      cursor:pointer;
+      background:#fff;
+    }
+    button.primary{
+      border-color:#16a34a;
+      background:linear-gradient(135deg,#16a34a,#15803d);
+      color:#fff;
+    }
+    button.small{padding:6px 10px;font-size:13px}
+    .hint{font-size:12px;color:var(--muted)}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:6px;border-bottom:1px solid var(--border);vertical-align:middle;text-align:left}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+    .name{font-weight:600}
+    .old{color:var(--muted);font-size:12px}
+    .price-input{
+      width:100%;
+      border-radius:8px;
+      border:1px solid var(--border);
+      padding:6px 8px;
+      font-size:14px;
+    }
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:11px;color:var(--muted)}
+    .tot{font-size:13px;font-weight:600;margin-top:6px}
+    @media (max-width:600px){
+      th:nth-child(2),td:nth-child(2){max-width:140px}
+    }
+  </style>
 </head>
 <body>
-<div class="topbar">
-  <div>
-    <h1>💶 ARSLAN PRECIOS</h1>
-    <div class="hint">Editar precios desde cualquier dispositivo (link externo).</div>
-  </div>
-  <div class="pill" id="datePill">Fecha: —</div>
-</div>
+  <div class="app">
+    <h1>💶 ARSLAN — Poner precios</h1>
+    <div class="meta" id="metaInfo">Cargando datos…</div>
 
-<div class="container">
-  <div class="card">
-    <div class="hd">
-      <strong>Filtros</strong>
-    </div>
-    <div class="bd">
+    <div class="card">
       <div class="row" style="margin-bottom:8px">
         <div>
-          <div class="hint">Buscar producto</div>
-          <input id="filterText" class="input-filter" placeholder="Ej: TOMATE, KIWI, NARANJA..." oninput="onFilterChange()">
+          <div class="hint">Grupo / Proveedor</div>
+          <select id="selGroup"></select>
         </div>
-        <div>
-          <div class="hint">Proveedor</div>
-          <select id="filterProv" onchange="onFilterChange()">
-            <option value="ALL">Todos</option>
-          </select>
+        <div style="flex:0 0 auto;display:flex;gap:6px;align-items:flex-end">
+          <button class="small" onclick="selectAll(true)">✅ Todo</button>
+          <button class="small" onclick="selectAll(false)">⬜ Nada</button>
         </div>
       </div>
-      <div class="toolbar">
-        <button class="btn small muted" onclick="selectAll(true)">✅ Seleccionar todos</button>
-        <button class="btn small muted" onclick="selectAll(false)">⬜ Quitar selección</button>
-        <span class="badge" id="countBadge">0 productos</span>
+      <div class="hint">
+        Solo se usarán en el PDF las líneas <b>seleccionadas</b> y con <b>precio nuevo</b> distinto de vacío.
+        Teclado: en móvil sale numérico, <b>Enter</b> pasa al siguiente precio.
       </div>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="hd">
-      <strong>Listado de productos</strong>
-      <div class="toolbar">
-        <button class="btn small" onclick="exportTXT()">📄 TXT</button>
-        <button class="btn small muted" onclick="exportJSON()">🧾 JSON</button>
-        <button class="btn small muted" onclick="exportPDF()">🧾 PDF cuadrícula</button>
-      </div>
-    </div>
-    <div class="bd">
-      <div class="hint" style="margin-bottom:6px">
-        Introduce precios con <b>coma</b> o <b>punto</b> (ej: 1,20 o 1.2).  
-        Enter → siguiente precio · Shift+Enter → anterior.  
-        En exportaciones se usan solo productos con precio (y se prioriza lo seleccionado).
-      </div>
-      <div class="scroll-x">
-        <table>
+    <div class="card">
+      <div class="hint" id="infoCount" style="margin-bottom:6px"></div>
+      <div style="max-height:65vh;overflow:auto;-webkit-overflow-scrolling:touch">
+        <table id="tbl">
           <thead>
             <tr>
-              <th>✔</th>
+              <th></th>
               <th>Producto</th>
-              <th>Proveedores</th>
-              <th>Precio actual</th>
+              <th>Precio antiguo</th>
               <th>Nuevo precio</th>
             </tr>
           </thead>
-          <tbody id="tbodyPrecios"></tbody>
+          <tbody id="tbody"></tbody>
         </table>
+      </div>
+      <div class="tot" id="totPreview"></div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <button class="primary" onclick="generatePDF()">🧾 PDF solo nuevos precios</button>
+        <button class="small" onclick="exportTXT()">📄 TXT (nombre / precio)</button>
+      </div>
+      <div class="hint" style="margin-top:6px">
+        El PDF se abre en una pestaña nueva → usa “Imprimir / Guardar como PDF”.  
+        El TXT te vale para pegar en ARSLAN LISTAS o enviar por WhatsApp.
       </div>
     </div>
   </div>
-</div>
 
 <script>
-let RAW_ITEMS = [];
-let ITEMS = [];
-let FILTER_TEXT = '';
-let FILTER_PROV = 'ALL';
+let PAYLOAD = null;
+let CURRENT_GROUP = 'ALL';
+let ROWS = []; // {id,name,old,new,checked}
 
-function getQueryParam(name){
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
-}
-
+/* ========= CARGA PARAM ========= */
 function parsePayload(){
-  const dataParam = getQueryParam('data');
-  if(!dataParam){
-    alert('Falta parámetro data en la URL.');
-    return { dateISO:'', items:[] };
-  }
+  const qs = new URLSearchParams(location.search);
+  const data = qs.get('data');
+  if(!data) return null;
   try{
-    const json = LZString.decompressFromEncodedURIComponent(dataParam);
-    const obj = JSON.parse(json);
-    if(Array.isArray(obj.items)) return obj;
+    const json = LZString.decompressFromEncodedURIComponent(data);
+    if(!json) return null;
+    return JSON.parse(json);
   }catch(e){
     console.error(e);
-    alert('No se pudo leer el paquete de datos de precios.');
+    return null;
   }
-  return { dateISO:'', items:[] };
 }
 
-function init(){
-  const payload = parsePayload();
-  const datePill = document.getElementById('datePill');
-  if(datePill){
-    datePill.textContent = payload.dateISO ? ('Fecha: '+payload.dateISO) : 'Fecha: —';
-  }
-
-  const provSet = new Set();
-  RAW_ITEMS = (payload.items||[]).map((it,idx)=>{
-    const providers = Array.isArray(it.providers)? it.providers : [];
-    providers.forEach(p=>provSet.add(p));
-    return {
-      key: it.key || ('k_'+idx),
-      name: it.name || '',
-      providers,
-      currentPrice: it.currentPrice || '',
-      newPrice: '',
-      selected: false
-    };
-  });
-
-  const selProv = document.getElementById('filterProv');
-  const provList = Array.from(provSet).sort((a,b)=>a.localeCompare(b,'es'));
-  provList.forEach(p=>{
-    const opt = document.createElement('option');
-    opt.value = p;
-    opt.textContent = p;
-    selProv.appendChild(opt);
-  });
-
-  applyFilters();
-}
-
-function applyFilters(){
-  FILTER_TEXT = (document.getElementById('filterText').value||'').trim().toUpperCase();
-  FILTER_PROV = document.getElementById('filterProv').value || 'ALL';
-
-  ITEMS = RAW_ITEMS.filter(it=>{
-    if(FILTER_TEXT){
-      const nk = it.name.toUpperCase();
-      if(!nk.includes(FILTER_TEXT)) return false;
-    }
-    if(FILTER_PROV!=='ALL'){
-      if(!it.providers || !it.providers.includes(FILTER_PROV)) return false;
-    }
-    return true;
-  });
-
-  renderTable();
-}
-
-function onFilterChange(){
-  applyFilters();
-}
-
-function renderTable(){
-  const tbody = document.getElementById('tbodyPrecios');
-  tbody.innerHTML = '';
-  const countBadge = document.getElementById('countBadge');
-  if(countBadge){
-    countBadge.textContent = `${ITEMS.length} productos`;
-  }
-  ITEMS.forEach((it,idx)=>{
-    const tr = document.createElement('tr');
-
-    const tdSel = document.createElement('td');
-    const chk = document.createElement('input');
-    chk.type = 'checkbox';
-    chk.checked = !!it.selected;
-    chk.onchange = ()=>{ it.selected = chk.checked; };
-    tdSel.appendChild(chk);
-
-    const tdName = document.createElement('td');
-    tdName.textContent = it.name;
-
-    const tdProv = document.createElement('td');
-    if(it.providers && it.providers.length){
-      it.providers.forEach(p=>{
-        const span = document.createElement('span');
-        span.className = 'chip-prov';
-        span.textContent = p;
-        tdProv.appendChild(span);
+/* ========= RENDER ========= */
+function buildRowsFromPayload(){
+  if(!PAYLOAD || !PAYLOAD.groups) return;
+  ROWS = [];
+  PAYLOAD.groups.forEach(g=>{
+    (g.items||[]).forEach((it,idx)=>{
+      ROWS.push({
+        id: `${g.id}_${it.key||idx}`,
+        group: g.id,
+        groupLabel: g.label,
+        name: it.name,
+        old: it.oldPrice || '',
+        value: '',
+        checked: false
       });
-    }else{
-      tdProv.innerHTML = '<span class="chip-prov">SIN PROV</span>';
-    }
-
-    const tdCur = document.createElement('td');
-    tdCur.textContent = it.currentPrice ? (Number(it.currentPrice).toFixed(2)+'€') : '';
-
-    const tdNew = document.createElement('td');
-    const inp = document.createElement('input');
-    inp.type = 'text';
-    inp.className = 'price-input';
-    inp.inputMode = 'decimal';
-    inp.pattern = "[0-9]*[.,]?[0-9]*";
-    inp.placeholder = it.currentPrice ? Number(it.currentPrice).toFixed(2).replace('.',',') : '';
-    if(it.newPrice){
-      inp.value = it.newPrice.replace('.',',');
-    }
-    inp.addEventListener('blur', ()=>handlePriceBlur(it, inp));
-    inp.addEventListener('keydown', (ev)=>{
-      handlePriceKey(ev, idx);
     });
-    tdNew.appendChild(inp);
-
-    tr.appendChild(tdSel);
-    tr.appendChild(tdName);
-    tr.appendChild(tdProv);
-    tr.appendChild(tdCur);
-    tr.appendChild(tdNew);
-    tbody.appendChild(tr);
   });
 }
+function buildGroupSelector(){
+  const sel = document.getElementById('selGroup');
+  const groups = new Map();
+  ROWS.forEach(r=>{ groups.set(r.group, r.groupLabel); });
+  let html = `<option value="ALL">Todos los grupos</option>`;
+  Array.from(groups.entries()).forEach(([id,label])=>{
+    html += `<option value="${id}">${label}</option>`;
+  });
+  sel.innerHTML = html;
+  sel.value = CURRENT_GROUP;
+  sel.onchange = ()=>{
+    CURRENT_GROUP = sel.value;
+    renderTable();
+  };
+}
+function filteredRows(){
+  if(CURRENT_GROUP==='ALL') return ROWS;
+  return ROWS.filter(r=>r.group===CURRENT_GROUP);
+}
+function renderTable(){
+  const tbody = document.getElementById('tbody');
+  const rows = filteredRows();
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="4"><span class="hint">No hay productos en este grupo.</span></td></tr>`;
+    document.getElementById('infoCount').textContent = '0 productos.';
+    document.getElementById('totPreview').textContent = '';
+    return;
+  }
+  let html = '';
+  let totalPreview = 0;
+  rows.forEach((r,idx)=>{
+    const hasNew = r.value!=='' && !isNaN(parseFloat(r.value.replace(',','.')));
+    if(hasNew){
+      totalPreview += parseFloat(r.value.replace(',','.'));
+    }
+    html += `<tr data-id="${r.id}">
+      <td><input type="checkbox" ${r.checked?'checked':''} onchange="toggleRow('${r.id}',this.checked)"></td>
+      <td class="name">${escapeHTML(r.name)}<div class="hint">${escapeHTML(r.groupLabel||'')}</div></td>
+      <td class="old">${r.old?escapeHTML(r.old)+' €':''}</td>
+      <td>
+        <input
+          class="price-input"
+          value="${r.value!==''?escapeHTML(r.value):''}"
+          inputmode="decimal"
+          autocomplete="off"
+          onkeydown="priceKeyDown(event,'${r.id}')"
+          onblur="priceBlur(this,'${r.id}')"
+        />
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  document.getElementById('infoCount').textContent = rows.length + ' productos en este grupo.';
+  document.getElementById('totPreview').textContent =
+    totalPreview>0 ? ('Suma de precios nuevos (solo vista rápida): ' + totalPreview.toFixed(2) + '€') : '';
+}
+function escapeHTML(str){
+  return String(str||'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
 
-function handlePriceBlur(item, inputEl){
-  const raw = String(inputEl.value||'').trim();
+/* ========= INTERACCIÓN ========= */
+function toggleRow(id, checked){
+  const r = ROWS.find(x=>x.id===id);
+  if(!r) return;
+  r.checked = checked;
+}
+function priceKeyDown(e,id){
+  if(e.key==='Enter'){
+    e.preventDefault();
+    // saltar al siguiente input visible
+    const inputs = Array.from(document.querySelectorAll('.price-input'));
+    const idx = inputs.indexOf(e.target);
+    if(idx>-1 && inputs[idx+1]){
+      inputs[idx+1].focus();
+      inputs[idx+1].select();
+    }
+  }
+}
+function priceBlur(input,id){
+  const r = ROWS.find(x=>x.id===id);
+  if(!r) return;
+  const raw = String(input.value||'').trim();
   if(raw===''){
-    item.newPrice = '';
+    r.value = '';
+    renderTable();
     return;
   }
   const n = parseFloat(raw.replace(',','.'));
   if(isNaN(n)){
-    inputEl.value = item.newPrice ? item.newPrice.replace('.',',') : '';
+    input.value = r.value || '';
     return;
   }
   const fixed = n.toFixed(2);
-  item.newPrice = fixed;
-  inputEl.value = fixed.replace('.',',');
+  r.value = fixed;
+  input.value = fixed;
 }
-
-function handlePriceKey(ev, idx){
-  if(ev.key==='Enter'){
-    ev.preventDefault();
-    const dir = ev.shiftKey ? -1 : 1;
-    moveFocus(idx, dir);
-  }
-}
-
-function moveFocus(idx, dir){
-  const tbody = document.getElementById('tbodyPrecios');
-  const inputs = tbody.querySelectorAll('input.price-input');
-  if(!inputs.length) return;
-  const newIndex = idx + dir;
-  if(newIndex<0 || newIndex>=inputs.length) return;
-  inputs[newIndex].focus();
-  inputs[newIndex].select();
-}
-
 function selectAll(flag){
-  RAW_ITEMS.forEach(it=>{ it.selected = !!flag; });
-  applyFilters();
+  filteredRows().forEach(r=>{ r.checked = !!flag; });
+  renderTable();
 }
 
-/* ==========================
-   Export helpers
-========================== */
-function collectItemsForExport(){
-  const selected = RAW_ITEMS.filter(it=>it.selected && it.newPrice);
-  const withPrice = RAW_ITEMS.filter(it=>it.newPrice);
-  if(selected.length) return selected;
-  return withPrice;
-}
-
+/* ========= EXPORT TXT ========= */
 function exportTXT(){
-  const items = collectItemsForExport();
-  if(!items.length){
-    alert('No hay productos con precio nuevo.');
+  const lines = selectedWithNewPrice().map(r=>`${r.name}\t${r.value}€`);
+  if(!lines.length){
+    alert('No hay líneas seleccionadas con precio nuevo.');
     return;
   }
-  const lines = items
-    .sort((a,b)=>a.name.localeCompare(b.name,'es'))
-    .map(it=>`${it.name}\t${Number(it.newPrice).toFixed(2)}€`);
   const today = new Date().toISOString().split('T')[0];
   const blob = new Blob([lines.join('\n')],{type:'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `precios_${today}.txt`;
+  a.download = `precios_nuevos_${today}.txt`;
   a.click();
 }
 
-function exportJSON(){
-  const items = collectItemsForExport();
-  if(!items.length){
-    alert('No hay productos con precio nuevo.');
-    return;
-  }
-  const payload = items.map(it=>({
-    key: it.key,
-    name: it.name,
-    price: Number(it.newPrice).toFixed(2)
-  }));
-  const today = new Date().toISOString().split('T')[0];
-  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `precios_${today}.json`;
-  a.click();
+/* ========= PDF ========= */
+function selectedWithNewPrice(){
+  return ROWS.filter(r=>{
+    if(!r.checked) return false;
+    if(!r.value) return false;
+    const n = parseFloat(r.value.replace(',','.'));
+    if(isNaN(n)) return false;
+    // si quieres ignorar cuando es igual que oldPrice (si oldPrice existe):
+    if(r.old){
+      const oldN = parseFloat(String(r.old).replace(',','.'));
+      if(!isNaN(oldN) && Math.abs(oldN-n)<0.0001) return false;
+    }
+    return true;
+  });
 }
-
-function exportPDF(){
-  const items = collectItemsForExport();
-  if(!items.length){
-    alert('No hay productos con precio nuevo.');
+function generatePDF(){
+  const sel = selectedWithNewPrice();
+  if(!sel.length){
+    alert('No hay líneas seleccionadas con precio nuevo.');
     return;
   }
   const dt = new Date();
   const dateStr = dt.toLocaleDateString();
   const timeStr = dt.toLocaleTimeString();
-
-  const rowsHTML = items
-    .sort((a,b)=>a.name.localeCompare(b.name,'es'))
-    .map(it=>{
-      const prov = (it.providers && it.providers.length)? it.providers.join(', ') : 'SIN PROV';
-      const precio = Number(it.newPrice).toFixed(2);
-      return `<tr>
-        <td>${escapeHTML(it.name)}</td>
-        <td>${escapeHTML(prov)}</td>
-        <td style="text-align:right">${escapeHTML(precio)}€</td>
-      </tr>`;
-    }).join('');
-
-  const w = window.open('','_blank');
-  if(!w){ alert('Popup bloqueado por el navegador.'); return; }
+  const rowsHTML = sel.map(r=>{
+    return `<tr>
+      <td>${escapeHTML(r.name)}</td>
+      <td style="text-align:right">${escapeHTML(r.old||'')}</td>
+      <td style="text-align:right">${escapeHTML(r.value)}</td>
+    </tr>`;
+  }).join('');
+  const w = window.open('', '_blank');
+  if(!w){ alert('Bloqueado por el navegador. Permite popups.'); return; }
   w.document.open();
   w.document.write(`
     <!doctype html>
@@ -374,12 +329,12 @@ function exportPDF(){
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
-      <title>Listado precios</title>
+      <title>Precios nuevos</title>
       <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
       <style>
         body{font-family:Poppins,system-ui,Arial;margin:24px;color:#111827}
         h1{font-size:18px;margin:0 0 6px}
-        .meta{font-size:12px;color:#6b7280;margin-bottom:12px}
+        .meta{font-size:12px;color:#6b7280;margin-bottom:14px}
         table{width:100%;border-collapse:collapse;font-size:12px}
         th,td{border:1px solid #11182722;padding:6px;vertical-align:top}
         th{text-transform:uppercase;letter-spacing:.04em;background:#11182710}
@@ -390,21 +345,19 @@ function exportPDF(){
     </head>
     <body>
       <div class="noPrint">
-        <button onclick="window.print()">🧾 Imprimir / Guardar PDF</button>
+        <button onclick="window.print()">🧾 Imprimir / Guardar como PDF</button>
       </div>
-      <h1>💶 Listado de precios</h1>
+      <h1>💶 Nuevos precios</h1>
       <div class="meta">${escapeHTML(dateStr)} — ${escapeHTML(timeStr)}</div>
       <table>
         <thead>
           <tr>
             <th>Producto</th>
-            <th>Proveedores</th>
-            <th>Nuevo precio</th>
+            <th style="text-align:right">Precio antiguo</th>
+            <th style="text-align:right">Nuevo precio</th>
           </tr>
         </thead>
-        <tbody>
-          ${rowsHTML}
-        </tbody>
+        <tbody>${rowsHTML}</tbody>
       </table>
     </body>
     </html>
@@ -412,16 +365,20 @@ function exportPDF(){
   w.document.close();
 }
 
-function escapeHTML(str){
-  return String(str||'')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#039;');
-}
-
-document.addEventListener('DOMContentLoaded', init);
+/* ========= INIT ========= */
+(function init(){
+  PAYLOAD = parsePayload();
+  const meta = document.getElementById('metaInfo');
+  if(!PAYLOAD || !PAYLOAD.groups || !PAYLOAD.groups.length){
+    meta.textContent = 'Sin datos recibidos. Asegúrate de abrir este link desde ARSLAN LISTAS (botón “💶 Link Precios”).';
+    document.getElementById('infoCount').textContent = '0 productos.';
+    return;
+  }
+  meta.textContent = `Fecha ARSLAN: ${PAYLOAD.dateISO || ''} — grupos: ${PAYLOAD.groups.length}`;
+  buildRowsFromPayload();
+  buildGroupSelector();
+  renderTable();
+})();
 </script>
 </body>
 </html>
