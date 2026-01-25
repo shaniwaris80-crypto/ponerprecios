@@ -1,18 +1,171 @@
-// ARSLAN — Módulo externo "Poner precios"
-// Lee ?data=... (LZString) y permite poner precio nuevo a productos.
-// PDF/TXT solo incluyen los productos donde se ha puesto precio nuevo.
-// No hace falta seleccionar nada.
+// app.js — Poner precios externo (mobile friendly)
 
-let PAYLOAD = null;
-let ROWS = [];      // {id, group, groupLabel, name, old, value}
-let CURRENT_GROUP = 'ALL';
+let items = [];        // {key,name,provider,price}
+let flatInputs = [];   // lista plana de inputs para navegar con Enter
 
-// Shortcuts de DOM
-const $ = (id) => document.getElementById(id);
+const KNOWN_PROV = ["ESMO","MONTENEGRO","ÁNGEL VACA","JOSÉ ANTONIO","JAVI","ANGELO","NO ASIGNADO"];
 
-/* ========= UTILIDADES ========= */
+function getQueryParam(name){
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
+function parsePayload(){
+  const packed = getQueryParam('data');
+  if(!packed) return null;
+  try{
+    const json = LZString.decompressFromEncodedURIComponent(packed);
+    if(!json) return null;
+    const obj = JSON.parse(json);
+    if(!obj || !Array.isArray(obj.items)) return null;
+    return obj;
+  }catch(e){
+    console.error(e);
+    return null;
+  }
+}
+
+function groupItemsByProvider(list){
+  const groups = {};
+  list.forEach(it=>{
+    const prov = (it.provider || 'NO ASIGNADO').toUpperCase();
+    if(!groups[prov]) groups[prov] = [];
+    groups[prov].push(it);
+  });
+  const orderedProvs = [];
+  KNOWN_PROV.forEach(p=>{
+    if(groups[p] && groups[p].length) orderedProvs.push(p);
+  });
+  Object.keys(groups).forEach(p=>{
+    if(!orderedProvs.includes(p)) orderedProvs.push(p);
+  });
+  const final = [];
+  orderedProvs.forEach(p=>{
+    final.push({ provider:p, items: groups[p].sort((a,b)=>a.name.localeCompare(b.name,'es')) });
+  });
+  return final;
+}
+
+function render(payload){
+  items = (payload.items || []).map(it=>({
+    key: String(it.key || ''),
+    name: String(it.name || ''),
+    provider: String(it.provider || 'NO ASIGNADO').toUpperCase(),
+    price: it.price ? String(it.price) : ''
+  }));
+  const content = document.getElementById('content');
+  const metaInfo = document.getElementById('metaInfo');
+  const countProducts = document.getElementById('countProducts');
+  const countWithPrice = document.getElementById('countWithPrice');
+
+  if(!items.length){
+    content.innerHTML = `<div class="card"><div class="card-bd">
+      <div class="hint">No se han recibido productos. Asegúrate de abrir este enlace desde ARSLAN LISTAS con el botón "💶 Link Precios".</div>
+    </div></div>`;
+    countProducts.textContent = '0 productos';
+    countWithPrice.textContent = '0 con precio';
+    metaInfo.textContent = '';
+    return;
+  }
+
+  metaInfo.textContent = payload.dateISO ? `Fecha: ${payload.dateISO}` : '';
+  countProducts.textContent = `${items.length} productos`;
+  countWithPrice.textContent = `${items.filter(i=>i.price && i.price!=='').length} con precio`;
+
+  const groups = groupItemsByProvider(items);
+  let html = '';
+
+  groups.forEach(group=>{
+    html += `
+      <div class="card">
+        <div class="card-hd">
+          <div class="prov-title">
+            <span>${group.provider === 'NO ASIGNADO' ? '🔘 Sin proveedor asignado' : '🏷️ ' + group.provider}</span>
+            <span class="prov-badge">${group.items.length} productos</span>
+          </div>
+        </div>
+        <div class="card-bd">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th style="width:90px;text-align:right">Precio</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+    group.items.forEach((it)=>{
+      const index = items.findIndex(x=>x.key===it.key);
+      html += `
+        <tr>
+          <td class="row-header">${escapeHTML(it.name)}</td>
+          <td style="text-align:right">
+            <input
+              type="text"
+              inputmode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
+              class="price-input"
+              data-index="${index}"
+              value="${it.price ? escapeHTML(it.price) : ''}"
+              placeholder="0,00">
+          </td>
+        </tr>
+      `;
+    });
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  });
+
+  content.innerHTML = html;
+
+  flatInputs = Array.from(document.querySelectorAll('.price-input'));
+  flatInputs.forEach((inp, idx)=>{
+    inp.addEventListener('keydown',(e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        const next = flatInputs[idx+1];
+        if(next){ next.focus(); next.select?.(); }
+      }
+    });
+    inp.addEventListener('blur',()=>{
+      const index = Number(inp.dataset.index);
+      savePriceFromInput(index, inp);
+      updateCounters();
+    });
+  });
+}
+
+function savePriceFromInput(index, input){
+  if(!items[index]) return;
+  const raw = (input.value || '').trim();
+  if(raw === ''){
+    items[index].price = '';
+    input.value = '';
+    return;
+  }
+  const n = parseFloat(raw.replace(',','.'));
+  if(isNaN(n)){
+    input.value = items[index].price || '';
+    return;
+  }
+  const val = n.toFixed(2);
+  items[index].price = val;
+  input.value = val;
+}
+
+function updateCounters(){
+  const countProducts = document.getElementById('countProducts');
+  const countWithPrice = document.getElementById('countWithPrice');
+  countProducts.textContent = `${items.length} productos`;
+  countWithPrice.textContent = `${items.filter(i=>i.price && i.price!=='').length} con precio`;
+}
+
 function escapeHTML(str){
-  return String(str || '')
+  return String(str||'')
     .replace(/&/g,'&amp;')
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;')
@@ -20,313 +173,104 @@ function escapeHTML(str){
     .replace(/'/g,'&#039;');
 }
 
-/* ========= LECTURA DEL PAYLOAD DESDE LA URL ========= */
-function parsePayloadFromURL(){
-  const qs = new URLSearchParams(location.search);
-  const data = qs.get('data');
-  if(!data) return null;
-  try{
-    const json = LZString.decompressFromEncodedURIComponent(data);
-    if(!json) return null;
-    return JSON.parse(json);
-  }catch(err){
-    console.error('Error parseando payload:', err);
-    return null;
-  }
-}
-
-/* ========= CONSTRUIR FILAS INTERNAS ========= */
-function buildRowsFromPayload(){
-  if(!PAYLOAD || !Array.isArray(PAYLOAD.groups)) return;
-  ROWS = [];
-  PAYLOAD.groups.forEach(group=>{
-    const gid = group.id || 'GRP';
-    const glabel = group.label || gid;
-    (group.items || []).forEach((it, idx)=>{
-      ROWS.push({
-        id: `${gid}_${it.key || idx}`,
-        group: gid,
-        groupLabel: glabel,
-        name: it.name || '',
-        old: it.oldPrice || '',
-        value: ''   // nuevo precio aquí
-      });
-    });
-  });
-}
-
-/* ========= FILTRADO POR GRUPO ========= */
-function filteredRows(){
-  if(CURRENT_GROUP === 'ALL') return ROWS;
-  return ROWS.filter(r => r.group === CURRENT_GROUP);
-}
-
-/* ========= SELECTOR DE GRUPO ========= */
-function buildGroupSelector(){
-  const sel = $('selGroup');
-  if(!sel) return;
-
-  const groups = new Map();
-  ROWS.forEach(r => groups.set(r.group, r.groupLabel));
-
-  let html = `<option value="ALL">Todos los grupos</option>`;
-  Array.from(groups.entries()).forEach(([id,label])=>{
-    html += `<option value="${id}">${escapeHTML(label)}</option>`;
-  });
-  sel.innerHTML = html;
-  sel.value = CURRENT_GROUP;
-
-  sel.onchange = () => {
-    CURRENT_GROUP = sel.value;
-    renderTable();
-  };
-}
-
-/* ========= RENDER TABLA ========= */
-function renderTable(){
-  const tbody = $('tbody');
-  const infoCount = $('infoCount');
-  const totPreview = $('totPreview');
-  const statsPreview = $('statsPreview');
-  if(!tbody) return;
-
-  const rows = filteredRows();
-  if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="3"><span class="hint">No hay productos en este grupo.</span></td></tr>`;
-    if(infoCount) infoCount.textContent = '0 productos.';
-    if(totPreview) totPreview.textContent = '';
-    if(statsPreview) statsPreview.textContent = '';
-    return;
-  }
-
-  let html = '';
-  let countNew = 0;
-
-  rows.forEach(r => {
-    const hasNew = r.value !== '' && !isNaN(parseFloat(r.value.replace(',','.')));
-    if(hasNew) countNew++;
-
-    html += `<tr data-id="${escapeHTML(r.id)}">
-      <td class="name">
-        ${escapeHTML(r.name)}
-        <div class="hint">${escapeHTML(r.groupLabel || '')}</div>
-      </td>
-      <td class="old">${r.old ? escapeHTML(r.old) + ' €' : ''}</td>
-      <td>
-        <input
-          class="price-input"
-          inputmode="decimal"
-          autocomplete="off"
-          value="${r.value !== '' ? escapeHTML(r.value) : ''}"
-        >
-      </td>
-    </tr>`;
-  });
-
-  tbody.innerHTML = html;
-
-  if(infoCount) infoCount.textContent = `${rows.length} productos en este grupo.`;
-  if(totPreview){
-    totPreview.textContent = countNew
-      ? `Líneas con precio nuevo en este grupo: ${countNew}.`
-      : 'Sin precios nuevos en este grupo.';
-  }
-  if(statsPreview){
-    const totalRowsNew = rowsWithNewPrice().length;
-    statsPreview.textContent = totalRowsNew
-      ? `Total de productos con precio nuevo (todos los grupos): ${totalRowsNew}.`
-      : 'Ningún producto con precio nuevo todavía.';
-  }
-
-  setupTableEvents();
-}
-
-/* ========= EVENTOS EN TABLA (inputs) ========= */
-function setupTableEvents(){
-  const tbody = $('tbody');
-  if(!tbody) return;
-
-  // Para evitar duplicar listeners en cada render, primero quitamos eventos
-  // usando delegación (solo un addEventListener global)
-
-  tbody.onblur = null;
-  tbody.onkeydown = null;
-
-  tbody.addEventListener('blur', handleBlur, true);
-  tbody.addEventListener('keydown', handleKeyDown);
-}
-
-function handleBlur(e){
-  if(!e.target.matches('.price-input')) return;
-  const tr = e.target.closest('tr');
-  if(!tr) return;
-  const id = tr.dataset.id;
-  const row = ROWS.find(x => x.id === id);
-  if(!row) return;
-  handlePriceBlur(e.target, row);
-}
-
-function handleKeyDown(e){
-  if(!e.target.matches('.price-input')) return;
-  if(e.key === 'Enter'){
-    e.preventDefault();
-    const tbody = $('tbody');
-    const inputs = Array.from(tbody.querySelectorAll('.price-input'));
-    const idx = inputs.indexOf(e.target);
-
-    // Guardar valor actual
-    const tr = e.target.closest('tr');
-    if(tr){
-      const id = tr.dataset.id;
-      const row = ROWS.find(x => x.id === id);
-      if(row) handlePriceBlur(e.target, row, true);
-    }
-
-    if(idx > -1 && inputs[idx+1]){
-      inputs[idx+1].focus();
-      inputs[idx+1].select();
-    }
-  }
-}
-
-function handlePriceBlur(input, row, noRerender){
-  const raw = String(input.value || '').trim();
-  if(raw === ''){
-    row.value = '';
-    if(!noRerender) renderTable();
-    return;
-  }
-  const n = parseFloat(raw.replace(',','.'));
-  if(isNaN(n)){
-    // Revertir
-    input.value = row.value || '';
-    return;
-  }
-  const fixed = n.toFixed(2);
-  row.value = fixed;
-  input.value = fixed;
-  if(!noRerender) renderTable();
-}
-
-/* ========= FILAS CON PRECIO NUEVO ========= */
-function rowsWithNewPrice(){
-  return ROWS.filter(r=>{
-    if(!r.value) return false;
-    const newN = parseFloat(r.value.replace(',','.'));
-    if(isNaN(newN)) return false;
-    if(r.old){
-      const oldN = parseFloat(String(r.old).replace(',','.'));
-      if(!isNaN(oldN) && Math.abs(oldN - newN) < 0.0001) return false;
-    }
-    return true;
-  });
-}
-
-/* ========= EXPORT TXT ========= */
-function exportTXT(){
-  const rows = rowsWithNewPrice();
-  if(!rows.length){
-    alert('No hay productos con precio nuevo.');
-    return;
-  }
-  const lines = rows.map(r => `${r.name}\t${r.value}€`);
-  const today = new Date().toISOString().split('T')[0];
-  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `precios_nuevos_${today}.txt`;
-  a.click();
-}
-
-/* ========= EXPORT PDF (solo nombre + NUEVO PRECIO) ========= */
-function generatePDF(){
-  const rows = rowsWithNewPrice();
-  if(!rows.length){
-    alert('No hay productos con precio nuevo.');
+/* ==========================
+   Export PDF precios (solo con precio)
+========================== */
+function exportPreciosPDF(){
+  const withPrice = items.filter(it=>it.price && it.price!=='');
+  if(!withPrice.length){
+    alert('No hay productos con precio. Introduce al menos un precio.');
     return;
   }
   const dt = new Date();
   const dateStr = dt.toLocaleDateString();
   const timeStr = dt.toLocaleTimeString();
+  const rows = withPrice.sort((a,b)=>{
+    const pa = a.provider === 'NO ASIGNADO' ? 'ZZZ' : a.provider;
+    const pb = b.provider === 'NO ASIGNADO' ? 'ZZZ' : b.provider;
+    if(pa === pb) return a.name.localeCompare(b.name,'es');
+    return pa.localeCompare(pb,'es');
+  });
 
-  const rowsHTML = rows.map(r => `
-    <tr>
-      <td>${escapeHTML(r.name)}</td>
-      <td style="text-align:right">${escapeHTML(r.value)}</td>
-    </tr>
-  `).join('');
+  const rowsHTML = rows.map(it=>{
+    return `<tr>
+      <td>${escapeHTML(it.name)}</td>
+      <td style="text-align:right">${escapeHTML(Number(it.price).toFixed(2))}€</td>
+    </tr>`;
+  }).join('');
 
   const w = window.open('', '_blank');
-  if(!w){
-    alert('El navegador ha bloqueado la ventana emergente. Permite pop-ups para guardar el PDF.');
-    return;
-  }
+  if(!w){ alert('Popup bloqueado. Permite ventanas emergentes.'); return; }
 
   w.document.open();
-  w.document.write(`<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Nuevos precios</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    body{font-family:Poppins,system-ui,Arial;margin:24px;color:#111827}
-    h1{font-size:18px;margin:0 0 6px}
-    .meta{font-size:12px;color:#6b7280;margin-bottom:14px}
-    table{width:100%;border-collapse:collapse;font-size:12px}
-    th,td{border:1px solid #11182722;padding:6px;vertical-align:top}
-    th{text-transform:uppercase;letter-spacing:.04em;background:#11182710}
-    @media print{ .noPrint{display:none} }
-    .noPrint{margin-bottom:12px}
-    button{padding:8px 12px;border-radius:10px;border:1px solid #11182722;background:#fff;cursor:pointer}
-  </style>
-</head>
-<body>
-  <div class="noPrint">
-    <button onclick="window.print()">🧾 Imprimir / Guardar como PDF</button>
-  </div>
-  <h1>💶 Nuevos precios</h1>
-  <div class="meta">${escapeHTML(dateStr)} — ${escapeHTML(timeStr)}</div>
-  <table>
-    <thead>
-      <tr>
-        <th>Producto</th>
-        <th style="text-align:right">Nuevo precio</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rowsHTML}
-    </tbody>
-  </table>
-</body>
-</html>`);
+  w.document.write(`
+    <!doctype html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Precios ARSLAN</title>
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+      <style>
+        body{font-family:Poppins,system-ui,Arial;margin:24px;color:#111827}
+        h1{font-size:18px;margin:0 0 6px}
+        .meta{font-size:12px;color:#6b7280;margin-bottom:14px}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{border:1px solid #11182722;padding:6px;vertical-align:top}
+        th{text-transform:uppercase;letter-spacing:.04em;background:#11182710;text-align:left}
+        .noPrint{margin-bottom:12px}
+        button{padding:8px 12px;border-radius:10px;border:1px solid #11182733;background:#fff;cursor:pointer}
+        @media print{ .noPrint{display:none} }
+      </style>
+    </head>
+    <body>
+      <div class="noPrint">
+        <button onclick="window.print()">🧾 Imprimir / Guardar como PDF</button>
+      </div>
+      <h1>💶 Lista de precios ARSLAN</h1>
+      <div class="meta">${escapeHTML(dateStr)} — ${escapeHTML(timeStr)}</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th style="text-align:right">Precio</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHTML}
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `);
   w.document.close();
 }
 
-/* ========= INIT ========= */
-function init(){
-  const meta = $('metaInfo');
-
-  PAYLOAD = parsePayloadFromURL();
-  if(!PAYLOAD || !Array.isArray(PAYLOAD.groups) || !PAYLOAD.groups.length){
-    if(meta) meta.textContent = 'Sin datos recibidos. Abre este link desde ARSLAN LISTAS (botón “💶 Link Precios”).';
-    const info = $('infoCount'); if(info) info.textContent='0 productos.';
+/* ==========================
+   Copiar lista TXT (solo con precio)
+========================== */
+function copyListaTXT(){
+  const withPrice = items.filter(it=>it.price && it.price!=='');
+  if(!withPrice.length){
+    alert('No hay productos con precio.');
     return;
   }
-
-  if(meta){
-    meta.textContent = `Fecha ARSLAN: ${PAYLOAD.dateISO || ''} — grupos: ${PAYLOAD.groups.length}`;
-  }
-
-  buildRowsFromPayload();
-  buildGroupSelector();
-  renderTable();
-
-  const btnTXT = $('btnTXT');
-  const btnPDF = $('btnPDF');
-  if(btnTXT) btnTXT.onclick = exportTXT;
-  if(btnPDF) btnPDF.onclick = generatePDF;
+  const lines = withPrice
+    .sort((a,b)=>a.name.localeCompare(b.name,'es'))
+    .map(it=>`${it.name}\t${Number(it.price).toFixed(2)}€`);
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(()=>alert('Lista copiada al portapapeles.'))
+    .catch(()=>alert('No se pudo copiar. Comprueba permisos del navegador.'));
 }
 
-document.addEventListener('DOMContentLoaded', init);
+/* ==========================
+   INIT
+========================== */
+(function init(){
+  const payload = parsePayload();
+  if(!payload){
+    render({items:[]});
+    return;
+  }
+  render(payload);
+})();
