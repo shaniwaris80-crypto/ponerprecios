@@ -3,117 +3,118 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ARSLAN PRECIOS v1 — KIWI</title>
+<title>Poner precios — ARSLAN</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
   :root{
-    --ink:#111827; --muted:#6b7280; --kiwi:#16a34a; --kiwi-2:#15803d; --border:#e5e7eb; --panel:#f8fafc;
-    --bg:#ffffff; --shadow:0 2px 8px rgba(0,0,0,.06);
+    --bg:#0f172a; --card:#020617; --ink:#e5e7eb; --muted:#9ca3af;
+    --accent:#22c55e; --accent2:#16a34a; --border:#1f2937; --danger:#ef4444;
   }
   *{box-sizing:border-box}
   body{
-    margin:0;font-family:'Poppins',sans-serif;background:var(--bg);color:var(--ink);
+    margin:0;
+    font-family:'Poppins',system-ui,Arial;
+    background:radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
+    color:var(--ink);
+    min-height:100vh;
   }
   .topbar{
-    position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border);
-    padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:20;
+    padding:10px 12px;
+    background:rgba(15,23,42,.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+    display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;
   }
-  h1{margin:0;font-size:18px}
-  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap}
-  .container{padding:10px 12px 80px}
-  .card{border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:var(--shadow);margin-bottom:10px}
-  .card .hd{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-  .card .bd{padding:10px 12px}
-  .toolbar{display:flex;flex-wrap:wrap;gap:8px}
-  .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--kiwi);background:linear-gradient(135deg,var(--kiwi),var(--kiwi-2));color:#fff;font-size:13px;cursor:pointer}
-  .btn.muted{background:#fff;color:var(--ink);border-color:var(--border)}
-  .btn.small{padding:6px 10px;font-size:12px}
+  h1{margin:0;font-size:18px;display:flex;align-items:center;gap:6px}
+  .pill{font-size:11px;border-radius:999px;border:1px solid var(--border);padding:4px 8px;color:var(--muted);white-space:nowrap}
+  .container{padding:12px 12px 80px}
+  .card{
+    border-radius:16px;
+    border:1px solid var(--border);
+    background:linear-gradient(135deg, rgba(15,23,42,.95), rgba(2,6,23,.98));
+    box-shadow:0 18px 40px rgba(0,0,0,.45);
+    margin-bottom:14px;
+  }
+  .card-hd{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .card-bd{padding:10px 12px}
+  .btn{
+    border-radius:999px;border:1px solid var(--accent2);
+    padding:8px 12px;font-size:13px;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+    color:#020617;font-weight:600;
+  }
+  .btn.ghost{
+    background:transparent;color:var(--accent);
+    border-color:var(--accent2);
+  }
+  .btn.danger{
+    background:transparent;color:var(--danger);border-color:var(--danger);
+  }
   .hint{font-size:12px;color:var(--muted)}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{border-bottom:1px solid var(--border);padding:6px;vertical-align:middle;text-align:left}
-  th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .chip-prov{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);font-size:11px;color:var(--muted);margin-right:4px}
-  .input-filter{width:100%;padding:8px 10px;border-radius:12px;border:1px solid var(--border);font-size:13px}
-  select{padding:8px 10px;border-radius:12px;border:1px solid var(--border);font-size:13px;width:100%}
-  .row{display:flex;gap:8px;flex-wrap:wrap}
-  .row > *{flex:1}
-  .price-input{
-    width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--border);font-size:14px;
+  th,td{padding:6px 4px;border-bottom:1px solid #1f2937}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left}
+  .prov-title{
+    font-size:13px;font-weight:600;margin:8px 0 4px;
+    display:flex;align-items:center;gap:6px;
   }
-  .price-input:focus{outline:none;border-color:var(--kiwi)}
-  .badge{font-size:11px;border-radius:999px;padding:2px 6px;border:1px solid var(--border);background:var(--panel);color:var(--muted)}
+  .prov-badge{
+    font-size:11px;padding:2px 8px;border-radius:999px;
+    border:1px solid #1f2937;background:#020617;color:var(--muted);
+  }
+  .price-input{
+    width:100%;
+    border-radius:10px;
+    border:1px solid #1f2937;
+    padding:6px 8px;
+    background:#020617;
+    color:var(--ink);
+    font-size:13px;
+  }
+  .row-header{font-weight:500}
+  .footer-bar{
+    position:fixed;bottom:0;left:0;right:0;
+    padding:8px 12px;
+    background:rgba(15,23,42,.96);
+    border-top:1px solid var(--border);
+    display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center;
+  }
+  .footer-bar .left{font-size:12px;color:var(--muted)}
+  .tag{padding:2px 6px;border-radius:999px;border:1px solid #1f2937;font-size:11px;color:var(--muted)}
+  @media(min-width:900px){
+    .container{max-width:900px;margin:0 auto 80px;}
+  }
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div>
-    <h1>💶 ARSLAN PRECIOS</h1>
-    <div class="hint">Editar precios desde cualquier dispositivo (link externo).</div>
-  </div>
-  <div class="pill" id="datePill">Fecha: —</div>
-</div>
-
-<div class="container">
-  <div class="card">
-    <div class="hd">
-      <strong>Filtros</strong>
+  <header class="topbar">
+    <div>
+      <h1>💶 Poner precios — ARSLAN</h1>
+      <div class="hint" id="metaInfo"></div>
     </div>
-    <div class="bd">
-      <div class="row" style="margin-bottom:8px">
-        <div>
-          <div class="hint">Buscar producto</div>
-          <input id="filterText" class="input-filter" placeholder="Ej: TOMATE, KIWI, NARANJA..." oninput="onFilterChange()">
-        </div>
-        <div>
-          <div class="hint">Proveedor</div>
-          <select id="filterProv" onchange="onFilterChange()">
-            <option value="ALL">Todos</option>
-          </select>
-        </div>
-      </div>
-      <div class="toolbar">
-        <button class="btn small muted" onclick="selectAll(true)">✅ Seleccionar todos</button>
-        <button class="btn small muted" onclick="selectAll(false)">⬜ Quitar selección</button>
-        <span class="badge" id="countBadge">0 productos</span>
-      </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <span class="pill">Solo guarda productos con precio</span>
+      <span class="pill">Enter ⇒ siguiente precio</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="content"></div>
+  </main>
+
+  <div class="footer-bar">
+    <div class="left">
+      <span class="tag" id="countProducts">0 productos</span>
+      <span class="tag" id="countWithPrice">0 con precio</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn ghost" onclick="copyListaTXT()">📋 Copiar lista</button>
+      <button class="btn" onclick="exportPreciosPDF()">🧾 PDF precios</button>
     </div>
   </div>
 
-  <div class="card">
-    <div class="hd">
-      <strong>Listado de productos</strong>
-      <div class="toolbar">
-        <button class="btn small" onclick="exportTXT()">📄 TXT</button>
-        <button class="btn small muted" onclick="exportJSON()">🧾 JSON</button>
-        <button class="btn small muted" onclick="exportPDF()">🧾 PDF cuadrícula</button>
-      </div>
-    </div>
-    <div class="bd">
-      <div class="hint" style="margin-bottom:6px">
-        Introduce precios con <b>coma</b> o <b>punto</b> (ej: 1,20 o 1.2).  
-        Enter → siguiente precio · Shift+Enter → anterior.  
-        En exportaciones se usan solo productos con precio (y se prioriza lo seleccionado).
-      </div>
-      <div class="scroll-x">
-        <table>
-          <thead>
-            <tr>
-              <th>✔</th>
-              <th>Producto</th>
-              <th>Proveedores</th>
-              <th>Precio actual</th>
-              <th>Nuevo precio</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyPrecios"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="app.js"></script>
+<script src="./app.js"></script>
 </body>
 </html>
